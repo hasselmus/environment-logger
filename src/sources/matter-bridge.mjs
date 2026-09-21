@@ -69,7 +69,7 @@ async function openController(config, pairingCode = null) {
     const nodeId = await controller.commissionNode({
       commissioning: {
         regulatoryLocation: matter.GeneralCommissioning.RegulatoryLocationType.IndoorOutdoor,
-        regulatoryCountryCode: config.countryCode || 'SE'
+        regulatoryCountryCode: config.countryCode
       },
       discovery: {
         identifierData: { shortDiscriminator: decoded.shortDiscriminator },
