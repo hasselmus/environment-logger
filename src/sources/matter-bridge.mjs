@@ -45,9 +45,11 @@ async function openController(config, pairingCode = null) {
   const matter = await loadMatter(storageDir);
   const environment = matter.Environment.default;
   const storageService = environment.get(matter.StorageService);
-  const manager = await storageService.open(`environment-logger-${config.id}`);
+  const storageNamespace = config.storageNamespace || `environment-logger-${config.id}`;
+  const manager = await storageService.open(storageNamespace);
   const ctx = manager.createContext('controller');
-  const uniqueId = await ctx.get('uniqueId', `environment-logger-${config.id}`);
+  const defaultId = config.controllerId || `environment-logger-${config.id}`;
+  const uniqueId = await ctx.get('uniqueId', defaultId);
   await ctx.set('uniqueId', uniqueId);
   await manager.close();
 
