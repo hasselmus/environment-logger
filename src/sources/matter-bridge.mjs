@@ -65,6 +65,10 @@ async function openController(config, pairingCode = null) {
       await controller.close?.();
       throw new Error(`[${config.id}] Matter controller is not commissioned.`);
     }
+    if (!config.countryCode || !/^[A-Z]{2}$/.test(config.countryCode)) {
+      await controller.close?.();
+      throw new Error(`[${config.id}] countryCode must be a two-letter ISO country code before commissioning.`);
+    }
     const decoded = matter.ManualPairingCodeCodec.decode(String(pairingCode).replace(/\D/g, ''));
     const nodeId = await controller.commissionNode({
       commissioning: {
