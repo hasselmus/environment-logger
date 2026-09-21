@@ -14,7 +14,11 @@ CONFIG=${ENV_LOGGER_CONFIG:-$TARGET_HOME/.config/environment-logger/site.json}
   echo "Configuration not found: $CONFIG" >&2
   exit 1
 }
-NODE=$(command -v node)
+NODE=${NODE_BINARY:-$(command -v node)}
+[ -x "$NODE" ] || {
+  echo "Node.js executable not found: $NODE" >&2
+  exit 1
+}
 
 cat > /etc/systemd/system/environment-logger.service <<UNIT
 [Unit]
@@ -27,8 +31,8 @@ StartLimitIntervalSec=0
 Type=simple
 User=$TARGET_USER
 WorkingDirectory=$REPO
-Environment=HOME=$TARGET_HOME
-Environment=ENV_LOGGER_CONFIG=$CONFIG
+Environment="HOME=$TARGET_HOME"
+Environment="ENV_LOGGER_CONFIG=$CONFIG"
 ExecStart=$NODE $REPO/src/main.mjs
 Restart=on-failure
 RestartSec=15
