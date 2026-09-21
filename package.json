@@ -1,6 +1,6 @@
 {
   "name": "environment-logger",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Small multi-source environmental telemetry logger, SQLite store and LAN dashboard",
   "type": "module",
@@ -13,7 +13,7 @@
     "matter-discover": "MATTER_LOG_LEVEL=notice node src/cli.mjs matter-discover",
     "export": "node src/export.mjs",
     "analysis-export": "node src/analysis-export.mjs",
-    "service-install": "sudo sh scripts/install-systemd.sh",
+    "service-install": "sudo env NODE_BINARY=$(command -v node) sh scripts/install-systemd.sh",
     "service-status": "systemctl --no-pager --full status environment-logger",
     "service-logs": "journalctl -u environment-logger -f"
   },
