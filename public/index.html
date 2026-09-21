@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Environment logger</title>
+<style>
+:root{color-scheme:light dark;font-family:system-ui,sans-serif;--bg:#0f1419;--card:#171e26;--fg:#e8eef3;--muted:#9baab6;--grid:#394653;--border:#2a3540}
+@media(prefers-color-scheme:light){:root{--bg:#f3f5f7;--card:#fff;--fg:#111820;--muted:#66727d;--grid:#d7dfe6;--border:#d7dfe6}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg)}main{max-width:1500px;margin:auto;padding:18px}.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+button{padding:6px 9px;background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:6px}.active{outline:2px solid currentColor}
+.latest{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}.pill,.card{background:var(--card);border:1px solid var(--border);border-radius:9px}.pill{padding:7px 10px}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:1050px){.grid{grid-template-columns:1fr 1fr}}.card{padding:12px}.card h2{font-size:1rem;margin:0 0 6px}
+.sub,.status{color:var(--muted);font-size:.82rem}canvas{width:100%;height:280px;display:block}
+</style>
+</head>
+<body><main>
+<div class="top"><h1 style="font-size:1.3rem">Environment logger</h1><div id="ranges"></div></div>
+<div id="status" class="status"></div><div id="latest" class="latest"></div><div id="charts" class="grid"></div>
+<script>
+const metrics=[
+ ['absolute_humidity','Absolute humidity','g/m³'],
+ ['temperature','Temperature','°C'],
+ ['relative_humidity','Relative humidity','%'],
+ ['co2','CO₂','ppm'],
+ ['pm2_5','PM2.5','µg/m³'],
+ ['pressure','Pressure','kPa'],
+ ['dew_point','Dew point','°C'],
+ ['dew_margin','Dew margin','°C'],
+ ['probe_temperature','Probe temperature','°C'],
+ ['air_quality','Air quality','']
+];
+const palette=['#2f81f7','#f0883e','#3fb950','#d2a8ff','#ff7b72','#39c5bb','#dbab09','#a371f7'];
+const dashes=[[],[8,4],[3,3],[10,3,2,3],[6,3],[12,5],[2,4],[9,3,2,3,2,3]];
+const ranges=[['24 h',24],['7 d',168],['30 d',720],['90 d',2160],['1 y',8760],['2 y',17520]];
+let hours=168;
+
+function seriesFor(rows,metric){
+ const m=new Map();
+ for(const r of rows){
+  if(r.metric!==metric)continue;
+  if(!m.has(r.sensor))m.set(r.sensor,[]);
+  m.get(r.sensor).push([Number(r.ts_ms),Number(r.value)]);
+ }
+ return [...m].map(([name,points])=>({name,points}));
+}
+function fmtTime(ms){
+ const d=new Date(ms);
+ return hours<=48?d.toLocaleString([], {weekday:'short',hour:'2-digit',minute:'2-digit'}):
+        hours<=720?d.toLocaleDateString([], {month:'short',day:'numeric'}):
+        d.toLocaleDateString([], {year:'2-digit',month:'short'});
+}
+function draw(canvas,series,unit){
+ const rect=canvas.getBoundingClientRect(),dpr=devicePixelRatio||1;
+ canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
+ const c=canvas.getContext('2d');c.scale(dpr,dpr);
+ const w=rect.width,h=rect.height,L=55,R=12,T=25,B=30,css=getComputedStyle(document.documentElement);
+ c.clearRect(0,0,w,h);
+ const pts=series.flatMap(s=>s.points);if(!pts.length)return;
+ let xmin=Math.min(...pts.map(p=>p[0])),xmax=Math.max(...pts.map(p=>p[0]));
+ let ymin=Math.min(...pts.map(p=>p[1])),ymax=Math.max(...pts.map(p=>p[1]));
+ let pad=(ymax-ymin)*.08||1;ymin-=pad;ymax+=pad;
+ const X=x=>L+(x-xmin)/(xmax-xmin||1)*(w-L-R),Y=y=>T+(ymax-y)/(ymax-ymin||1)*(h-T-B);
+ c.font='11px system-ui';c.fillStyle=css.getPropertyValue('--muted');c.strokeStyle=css.getPropertyValue('--grid');
+ for(let i=0;i<=4;i++){
+  const y=ymin+(ymax-ymin)*i/4,py=Y(y);
+  c.beginPath();c.moveTo(L,py);c.lineTo(w-R,py);c.stroke();
+  c.fillText(y.toFixed(unit==='%'?0:1)+' '+unit,3,py+4);
+ }
+ for(let i=0;i<=4;i++){
+  const x=xmin+(xmax-xmin)*i/4,px=X(x),s=fmtTime(x);
+  c.beginPath();c.moveTo(px,T);c.lineTo(px,h-B);c.stroke();
+  c.fillText(s,Math.max(L,Math.min(px-c.measureText(s).width/2,w-R-c.measureText(s).width)),h-8);
+ }
+ let lx=L,ly=12;
+ series.forEach((s,i)=>{
+  c.strokeStyle=palette[i%palette.length];c.setLineDash(dashes[i%dashes.length]);c.lineWidth=1.7;c.beginPath();
+  s.points.forEach((p,j)=>j?c.lineTo(X(p[0]),Y(p[1])):c.moveTo(X(p[0]),Y(p[1])));c.stroke();
+  c.beginPath();c.moveTo(lx,ly-4);c.lineTo(lx+14,ly-4);c.stroke();c.setLineDash([]);
+  c.fillStyle=css.getPropertyValue('--fg');c.fillText(s.name,lx+18,ly);
+  lx+=26+c.measureText(s.name).width;if(lx>w-130){lx=L;ly+=13}
+ });
+}
+function rangesUI(){
+ const e=document.getElementById('ranges');e.innerHTML='';
+ for(const [label,h] of ranges){
+  const b=document.createElement('button');b.textContent=label;b.className=h===hours?'active':'';
+  b.onclick=()=>{hours=h;rangesUI();load()};e.appendChild(b);
+ }
+}
+async function load(){
+ const [latest,series]=await Promise.all([
+  fetch('/api/v1/latest').then(r=>r.json()),
+  fetch('/api/v1/series?hours='+hours).then(r=>r.json())
+ ]);
+ document.getElementById('status').textContent=latest.site+' · updated '+new Date(latest.now).toLocaleString()+' · bucket '+Math.round(series.bucket_ms/60000)+' min';
+ document.getElementById('latest').innerHTML=latest.sensors.map(s=>'<span class="pill"><b>'+s.sensor+'</b> '+(s.temperature==null?'':s.temperature.toFixed(1)+'°C ')+(s.relative_humidity==null?'':s.relative_humidity.toFixed(0)+'% ')+(s.co2==null?'':s.co2.toFixed(0)+' ppm')+'</span>').join('');
+ const charts=document.getElementById('charts');charts.innerHTML='';
+ for(const [key,label,unit] of metrics){
+  const ss=seriesFor(series.rows,key);if(!ss.length)continue;
+  const section=document.createElement('section');section.className='card';section.innerHTML='<h2>'+label+'</h2><canvas></canvas>';
+  charts.appendChild(section);draw(section.querySelector('canvas'),ss,unit);
+ }
+}
+rangesUI();load();addEventListener('resize',()=>load());
+</script>
+</main></body></html>
