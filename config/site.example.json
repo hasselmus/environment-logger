@@ -1,0 +1,57 @@
+{
+  "site": "Example home",
+  "database": {
+    "path": "~/.local/share/environment-logger/environment.sqlite",
+    "requiredMount": null
+  },
+  "server": { "host": "0.0.0.0", "port": 8787 },
+  "sources": [
+    {
+      "id": "example-matter-bridge",
+      "type": "matter-bridge",
+      "enabled": false,
+      "storageDir": "~/.local/share/environment-logger/matter-state/example-matter-bridge",
+      "countryCode": "SE",
+      "pollSeconds": 300,
+      "channels": [
+        { "sensor": "Example room", "metric": "temperature", "endpoint": 10, "cluster": 1026, "attribute": 0, "scale": 0.01, "unit": "°C" },
+        { "sensor": "Example room", "metric": "relative_humidity", "endpoint": 11, "cluster": 1029, "attribute": 0, "scale": 0.01, "unit": "%" }
+      ]
+    },
+    {
+      "id": "example-matter-server",
+      "type": "matter-server",
+      "enabled": false,
+      "url": "ws://127.0.0.1:5580/ws",
+      "nodes": [
+        {
+          "nodeId": 2,
+          "sensor": "Example air sensor",
+          "channels": [
+            { "path": "1/1026/0", "metric": "temperature", "scale": 0.01, "unit": "°C" },
+            { "path": "1/1029/0", "metric": "relative_humidity", "scale": 0.01, "unit": "%" },
+            { "path": "1/1037/0", "metric": "co2", "unit": "ppm" },
+            { "path": "1/1066/0", "metric": "pm2_5", "unit": "µg/m³" },
+            { "path": "1/91/0", "metric": "air_quality" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "example-homebridge",
+      "type": "homebridge",
+      "enabled": false,
+      "username": "AA:BB:CC:DD:EE:FF",
+      "configPath": "/var/lib/homebridge/config.json",
+      "channels": [
+        { "sensor": "Example appliance", "metric": "temperature", "serviceType": "TemperatureSensor", "serviceName": "Example appliance", "characteristic": "CurrentTemperature", "unit": "°C" },
+        { "kind": "state", "entity": "Example door", "field": "open", "serviceType": "ContactSensor", "serviceName": "Example door", "characteristic": "ContactSensorState", "transform": "contact_open" }
+      ]
+    }
+  ],
+  "compatibility": {
+    "wallSensor": null,
+    "doorState": null,
+    "dehumidifierState": null
+  }
+}
