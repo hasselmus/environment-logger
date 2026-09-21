@@ -58,9 +58,9 @@ npm run matter-commission -- bridge1 YOUR-MATTER-CODE
 npm run matter-discover -- bridge1
 ```
 
-The pairing code is used locally and must not be committed. `matter-discover` prints common environmental endpoints; copy the desired endpoint/cluster mappings into the private site configuration.
+The pairing code is used locally and must not be committed. Set `countryCode` on that source to the installation's two-letter ISO country code before first commissioning. `matter-discover` prints common environmental endpoints; copy the desired endpoint/cluster mappings into the private site configuration.
 
-Matter cluster IDs in JSON are decimal. Examples: Temperature Measurement `0x0402 = 1026`, Pressure Measurement `0x0403 = 1027`, Relative Humidity Measurement `0x0405 = 1029`.
+Existing controller state can also be reused during migrations by pointing `storageDir` at the existing Matter storage and setting `storageNamespace` (and, if needed, `controllerId`) to the values used by the previous application. Do not run two controller processes against the same storage concurrently.\n\nMatter cluster IDs in JSON are decimal. Examples: Temperature Measurement `0x0402 = 1026`, Pressure Measurement `0x0403 = 1027`, Relative Humidity Measurement `0x0405 = 1029`.
 
 ## Matter Server / ALPSTUGA-style source
 
