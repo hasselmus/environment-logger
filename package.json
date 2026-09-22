@@ -1,13 +1,15 @@
 {
   "name": "environment-logger",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Small multi-source environmental telemetry logger, SQLite store and LAN dashboard",
   "type": "module",
-  "engines": { "node": ">=22.13.0" },
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "start": "node src/main.mjs",
-    "check": "node --check src/main.mjs && node --check src/web.mjs && node --check src/sources/homebridge.mjs && node --check src/sources/matter-bridge.mjs && node --check src/sources/matter-server.mjs",
+    "check": "node --check src/main.mjs && node --check src/web.mjs && node --check src/sources/homebridge.mjs && node --check src/sources/matter-direct.mjs && node --check src/sources/matter-bridge.mjs && node --check src/sources/matter-server.mjs",
     "config-check": "node src/cli.mjs config-check",
     "matter-commission": "MATTER_LOG_LEVEL=notice node src/cli.mjs matter-commission",
     "matter-discover": "MATTER_LOG_LEVEL=notice node src/cli.mjs matter-discover",
