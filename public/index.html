@@ -30,8 +30,9 @@ const metrics=[
  ['probe_temperature','Probe temperature','°C'],
  ['air_quality','Air quality','']
 ];
-const palette=['#2f81f7','#f0883e','#3fb950','#d2a8ff','#ff7b72','#39c5bb','#dbab09','#a371f7'];
-const dashes=[[],[8,4],[3,3],[10,3,2,3],[6,3],[12,5],[2,4],[9,3,2,3,2,3]];
+const palette=['#2f81f7','#f0883e','#3fb950','#d2a8ff',null,'#39c5bb','#dbab09','#ff7b72'];
+const dashes=[[],[8,4],[3,3],[10,3,2,3],[],[12,5],[2,4],[9,3,2,3,2,3]];
+function seriesColour(i,css){return palette[i%palette.length] || css.getPropertyValue('--fg').trim();}
 const ranges=[['24 h',24],['7 d',168],['30 d',720],['90 d',2160],['1 y',8760],['2 y',17520]];
 let hours=168;
 
@@ -74,7 +75,7 @@ function draw(canvas,series,unit){
  }
  let lx=L,ly=12;
  series.forEach((s,i)=>{
-  c.strokeStyle=palette[i%palette.length];c.setLineDash(dashes[i%dashes.length]);c.lineWidth=1.7;c.beginPath();
+  c.strokeStyle=seriesColour(i,css);c.setLineDash(dashes[i%dashes.length]);c.lineWidth=1.7;c.beginPath();
   s.points.forEach((p,j)=>j?c.lineTo(X(p[0]),Y(p[1])):c.moveTo(X(p[0]),Y(p[1])));c.stroke();
   c.beginPath();c.moveTo(lx,ly-4);c.lineTo(lx+14,ly-4);c.stroke();c.setLineDash([]);
   c.fillStyle=css.getPropertyValue('--fg');c.fillText(s.name,lx+18,ly);
