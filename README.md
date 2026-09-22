@@ -8,8 +8,9 @@ The repository intentionally contains **no installation-specific device names, M
 
 Three source adapters are included:
 
-- `matter-bridge` — direct local Matter controller, useful for bridged sensors such as Zigbee temperature/RH devices exposed through a Matter bridge.
-- `matter-server` — Open Home Foundation Matter Server WebSocket client, useful for native Matter devices such as air-quality sensors.
+- `matter-direct` — built-in local Matter controller for both native Matter devices and Matter bridges. One controller/fabric can manage multiple commissioned nodes.
+- `matter-bridge` — backwards-compatible alias for `matter-direct`; existing site configurations continue to work.
+- `matter-server` — optional Open Home Foundation Matter Server WebSocket client for installations that already use a separate Matter Server.
 - `homebridge` — read-only Homebridge HAP monitoring for values already exposed by Homebridge plugins.
 
 Power/energy accounting is deliberately out of scope; this project is for environmental measurements and related states.
@@ -49,22 +50,62 @@ npm start
 
 The dashboard/API defaults to `http://<host>:8787/`.
 
-## Matter bridge commissioning
+## Direct Matter commissioning
 
-For a `matter-bridge` source called `bridge1`:
+The preferred Matter path is now the built-in `matter-direct` source. It can use one Matter controller/fabric for several commissioned nodes — for example a Matter bridge plus a native air-quality sensor — so a separate Matter Server is not required.
+
+For a direct Matter source called `matter`:
 
 ```bash
-npm run matter-commission -- bridge1 YOUR-MATTER-CODE
-npm run matter-discover -- bridge1
+npm run matter-commission -- matter YOUR-MATTER-CODE
+npm run matter-discover -- matter
 ```
 
-The pairing code is used locally and must not be committed. Set `countryCode` on that source to the installation's two-letter ISO country code before first commissioning. `matter-discover` prints common environmental endpoints; copy the desired endpoint/cluster mappings into the private site configuration.
+`matter-commission` adds another device to the existing controller/fabric even when other nodes are already commissioned. It prints the newly assigned node ID and immediately discovers the common environmental attributes on that node.
 
-Existing controller state can also be reused during migrations by pointing `storageDir` at the existing Matter storage and setting `storageNamespace` (and, if needed, `controllerId`) to the values used by the previous application. Do not run two controller processes against the same storage concurrently.\n\nMatter cluster IDs in JSON are decimal. Examples: Temperature Measurement `0x0402 = 1026`, Pressure Measurement `0x0403 = 1027`, Relative Humidity Measurement `0x0405 = 1029`.
+To inspect just one already-commissioned node:
 
-## Matter Server / ALPSTUGA-style source
+```bash
+npm run matter-discover -- matter NODE_ID
+```
 
-A `matter-server` source maps arbitrary Matter attribute paths to metrics. For example:
+Set `countryCode` on the private source configuration to the installation's two-letter ISO country code before commissioning. The pairing code is only used locally and must not be committed.
+
+A multi-node source uses:
+
+```json
+{
+  "id": "matter",
+  "type": "matter-direct",
+  "storageDir": "~/.local/share/environment-logger/matter-state",
+  "countryCode": "XX",
+  "pollSeconds": 300,
+  "nodes": [
+    {
+      "nodeId": 1,
+      "channels": [
+        { "sensor": "Room", "metric": "temperature", "endpoint": 10, "cluster": 1026, "attribute": 0, "scale": 0.01, "unit": "°C" }
+      ]
+    },
+    {
+      "nodeId": 2,
+      "channels": [
+        { "sensor": "Air sensor", "metric": "co2", "endpoint": 1, "cluster": 1037, "attribute": 0, "unit": "ppm" }
+      ]
+    }
+  ]
+}
+```
+
+Existing single-node `matter-bridge` configurations are still accepted. Once a second node is added, convert that source to the `nodes` form (or at least set its original `nodeId`) so the logger can unambiguously associate channels with nodes.
+
+Existing controller state can be reused during migrations by pointing `storageDir` at the existing Matter storage and setting `storageNamespace` and, if needed, `controllerId` to the values used by the previous application. Never run two controller processes against the same storage concurrently.
+
+The built-in discovery currently recognises Air Quality, Temperature, Pressure, Relative Humidity, CO₂ and PM2.5 clusters. Matter cluster IDs in JSON are decimal: for example Temperature `0x0402 = 1026`, Relative Humidity `0x0405 = 1029`, CO₂ `0x040d = 1037`, PM2.5 `0x042a = 1066`, and Air Quality `0x005b = 91`.
+
+## Optional Matter Server source
+
+The separate Open Home Foundation Matter Server path remains supported for compatibility with existing installations. A `matter-server` source maps arbitrary Matter attribute paths to metrics. For example:
 
 ```json
 {
@@ -79,7 +120,7 @@ A `matter-server` source maps arbitrary Matter attribute paths to metrics. For e
 }
 ```
 
-This preserves the useful environmental part of the earlier `matter-metrics` design without bringing power-meter/energy-counter semantics into this project.
+For new installations, `matter-direct` is normally simpler because it removes the extra Matter Server daemon. The `matter-server` adapter remains useful when an existing Matter Server fabric is already in service.
 
 ## Homebridge source
 
