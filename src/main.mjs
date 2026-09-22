@@ -4,7 +4,7 @@ import { Store } from './store.mjs';
 import { absoluteHumidity, dewPoint, metricUnits } from './metrics.mjs';
 import { startWeb } from './web.mjs';
 import { HomebridgeSource } from './sources/homebridge.mjs';
-import { MatterBridgeSource } from './sources/matter-bridge.mjs';
+import { MatterDirectSource } from './sources/matter-direct.mjs';
 import { MatterServerSource } from './sources/matter-server.mjs';
 
 const config = loadConfig();
@@ -80,8 +80,8 @@ function state(s) {
 const handlers = { measurement, state };
 
 for (const sourceConfig of config.sources.filter(source => source.enabled !== false)) {
-  if (sourceConfig.type === 'matter-bridge') {
-    sources.push(new MatterBridgeSource(sourceConfig, handlers));
+  if (sourceConfig.type === 'matter-bridge' || sourceConfig.type === 'matter-direct') {
+    sources.push(new MatterDirectSource(sourceConfig, handlers));
   } else if (sourceConfig.type === 'matter-server') {
     sources.push(new MatterServerSource(sourceConfig, handlers));
   } else if (sourceConfig.type === 'homebridge') {
