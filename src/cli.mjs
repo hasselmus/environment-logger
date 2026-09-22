@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { loadConfig } from './config.mjs';
-import { commissionMatterBridge, discoverMatterBridge } from './sources/matter-bridge.mjs';
+import { commissionMatterDirect, discoverMatterDirect } from './sources/matter-direct.mjs';
 
 const [command, sourceId, arg] = process.argv.slice(2).filter(value => !value.startsWith('--storage-path='));
 const config = loadConfig();
@@ -14,12 +14,16 @@ if (command === 'config-check') {
 
 const source = config.sources.find(item => item.id === sourceId);
 if (!source) throw new Error(`Source '${sourceId}' not found. Usage: ${command} <source-id> ...`);
-if (source.type !== 'matter-bridge') throw new Error(`Source '${sourceId}' is ${source.type}, not matter-bridge.`);
+if (!['matter-direct', 'matter-bridge'].includes(source.type)) {
+  throw new Error(`Source '${sourceId}' is ${source.type}, not a direct Matter source.`);
+}
 
 if (command === 'matter-commission') {
-  await commissionMatterBridge(source, arg);
+  await commissionMatterDirect(source, arg);
 } else if (command === 'matter-discover') {
-  await discoverMatterBridge(source);
+  await discoverMatterDirect(source, arg ?? null);
 } else {
-  throw new Error('Commands: config-check | matter-commission <source-id> <pairing-code> | matter-discover <source-id>');
+  throw new Error(
+    'Commands: config-check | matter-commission <source-id> <pairing-code> | matter-discover <source-id> [node-id]'
+  );
 }
