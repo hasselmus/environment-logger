@@ -42,7 +42,7 @@ export function validateConfig(config) {
     if (!source?.id || !source.type) throw new Error('Every source needs id and type.');
     if (ids.has(source.id)) throw new Error(`Duplicate source id: ${source.id}`);
     ids.add(source.id);
-    if (!['matter-bridge', 'matter-server', 'homebridge'].includes(source.type)) {
+    if (!['matter-direct', 'matter-bridge', 'matter-server', 'homebridge'].includes(source.type)) {
       throw new Error(`Unsupported source type ${source.type} for ${source.id}.`);
     }
   }
