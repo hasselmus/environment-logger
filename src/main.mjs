@@ -17,16 +17,20 @@ function sensorState(sensor) {
   return latest.get(sensor);
 }
 
-function recordDerived(sensor, ts, source = 'derived') {
+function recordDerived(sensor, source = 'derived') {
   const state = sensorState(sensor);
-  const t = state.get('temperature')?.value;
-  const rh = state.get('relative_humidity')?.value;
+  const tState = state.get('temperature');
+  const rhState = state.get('relative_humidity');
+  const probeState = state.get('probe_temperature');
+  const t = tState?.value;
+  const rh = rhState?.value;
   if (Number.isFinite(t) && Number.isFinite(rh)) {
+    const climateTs = Math.max(Number(tState.ts) || 0, Number(rhState.ts) || 0);
     const ah = absoluteHumidity(t, rh);
     const dp = dewPoint(t, rh);
     if (Number.isFinite(ah)) {
       store.putMeasurement({
-        ts,
+        ts: climateTs,
         source,
         sensor,
         metric: 'absolute_humidity',
@@ -36,17 +40,17 @@ function recordDerived(sensor, ts, source = 'derived') {
     }
     if (Number.isFinite(dp)) {
       store.putMeasurement({
-        ts,
+        ts: climateTs,
         source,
         sensor,
         metric: 'dew_point',
         value: dp,
         unit: metricUnits.dew_point
       });
-      const probe = state.get('probe_temperature')?.value;
+      const probe = probeState?.value;
       if (Number.isFinite(probe)) {
         store.putMeasurement({
-          ts,
+          ts: Math.max(climateTs, Number(probeState.ts) || 0),
           source,
           sensor,
           metric: 'dew_margin',
@@ -68,7 +72,7 @@ function measurement(m) {
   });
   sensorState(m.sensor).set(m.metric, { value: Number(m.value), ts });
   if (['temperature', 'relative_humidity', 'probe_temperature'].includes(m.metric)) {
-    recordDerived(m.sensor, ts);
+    recordDerived(m.sensor);
   }
 }
 
@@ -78,6 +82,15 @@ function state(s) {
 }
 
 const handlers = { measurement, state };
+
+// Rehydrate the in-memory sensor state from the database before sources start.
+// This matters for derived values that combine channels which may update at
+// different times (notably wall probe temperature + room T/RH).
+for (const row of store.latestMeasurements()) {
+  sensorState(row.sensor).set(row.metric, { value: Number(row.value), ts: Number(row.ts_ms) });
+}
+for (const sensor of latest.keys()) recordDerived(sensor);
+
 
 for (const sourceConfig of config.sources.filter(source => source.enabled !== false)) {
   if (sourceConfig.type === 'matter-bridge' || sourceConfig.type === 'matter-direct') {
